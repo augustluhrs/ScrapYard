@@ -2,4 +2,4 @@ chromedriver
 .env
 testTxts
 databases
-node-modules
+node_modules
