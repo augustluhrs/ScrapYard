@@ -3,3 +3,4 @@ chromedriver
 testTxts
 databases
 node_modules
+debug.log

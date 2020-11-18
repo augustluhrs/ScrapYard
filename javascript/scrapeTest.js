@@ -23,13 +23,40 @@ var driver = new Webdriver.Builder()
                  .withCapabilities(Webdriver.Capabilities.chrome())
                  .build();
 
-driver.get("https://www.smartproxy.com/")
-
-//beautiful soup
-var JSSoup = require('jssoup');
-
 //misc
 var testURL = "https://www.instagram.com/p/CHrEVE8hlVY/";
+
+//beautiful soup
+var JSSoup = require('jssoup').default;
+
+
+//run
+// login();
+scrape();
+
+function login(){
+    driver.get('https://www.instagram.com/accounts/login/?hl=en')
+    console.log("opened insta");
+    let usernameBox = driver.findElement(By.name('username'));
+    // let usernameBox = (await driver).findElement(By.name('username')).then(()=>{
+    usernameBox.sendKeys(username);
+    console.log("account entered");
+    // });
+
+
+}
+
+//need to add async/await promises and stuff
+function scrape(){
+    driver.get(testURL);
+    let soup = new JSSoup(driver.getPageSource());
+    console.log(soup.find('div'))
+    for (let link of soup.findAll('img')) {
+        console.log(link.get('src'));
+    }
+}
+
+
 
 
 
