@@ -10,8 +10,20 @@ var username = process.env.ACCOUNT;
 var password = process.env.PASSWORD;
 
 //selenium
-const Webdriver = require('selenium-webdriver');
-var browser = new Webdriver.Builder().withCapabilities(Webdriver.Capabilities.chrome()).build();
+const Webdriver = require('selenium-webdriver'), By = Webdriver.By;
+// var browser = new Webdriver.Builder().forBrowser('chrome').build();
+// .withCapabilities(Webdriver.Capabilities.chrome()).build();
+
+const chrome = require('selenium-webdriver/chrome');
+const chromedriver = require('chromedriver');
+
+chrome.setDefaultService(new chrome.ServiceBuilder(chromedriver.path).build());
+
+var driver = new Webdriver.Builder()
+                 .withCapabilities(Webdriver.Capabilities.chrome())
+                 .build();
+
+driver.get("https://www.smartproxy.com/")
 
 //beautiful soup
 var JSSoup = require('jssoup');
