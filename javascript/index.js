@@ -18,7 +18,7 @@ var db = new AsyncNedb({filename: "databases/test.db", autoload: true});
 // var db = new Datastore({filename: "databases/100Days_S21.db", autoload: true});
 
 //.env -- not using for much now, but might be good for student privacy? FERPA violation?
-const DotEnv = require('dotenv').config();
+const DotEnv = require('dotenv').config(); //needs to be in same folder as index.js
 var username = process.env.ACCOUNT;
 var password = process.env.PASSWORD;
 
@@ -33,26 +33,19 @@ var driver = new Webdriver.Builder()
 
 // my modules
 const ScrapeManager = require('./scrapeManager');
-const Students = require('./students'); // list of usernames -- TODO: better way + privacy?
+// const Students = require('./students'); // list of usernames -- TODO: better way + privacy?
+const Students = require('./hidden/students_hidden'); // list of usernames -- TODO: better way + privacy?
 
 
 //main function
-// login();
 run();
-// run().then((changes) => {
-//     console.log("FINISHED -- changes: " + changes); //logs how many new posts were added, just for checking
-// });
 
 
 async function run(){
     try {
-        await login();
-        // console.log(await db.asyncCount({}));
-        // console.log(await db.asyncFind({}));
+        await login(); // log in -- only needed for private profiles
         let aDocs = await update(); //updates all the A docs from db
         let changes = await scrape(aDocs); //goes through each username for new posts and updates the db
-        // let changes = await scrape((await update())); //goes through each username for new posts and updates the db
-        // return await scrape((await update())); //goes through each username for new posts and updates the db
         console.log("FINISHED -- changes: " + changes); //logs how many new posts were added, just for checking
     } catch (err) {
         console.log(err);
@@ -62,37 +55,45 @@ async function run(){
 async function update() {
     try {
         //check for new users and add to aDocs if not, and check for new posts
-        
-        // let aDocsBefore = await db.asyncFind({type: 'A'});
-
         for(let student of Students) {
             //get posts then either update or upsert the a doc corresponding to that username
-            console.log('before');
-            let posts = await ScrapeManager.getPosts(driver, student.username);
-            await db.asyncUpdate({type: 'A', username: student.username}, {$set: {posts: posts}}, {upsert: true});
-            console.log('after');           
-            // console.log(student);
-            // await db.asyncFind({type: 'A'}, async function (err, docs) { 
-            //     if (err) {
-            //         console.log(err);
-            //     }
-                //get posts then either update or upsert the a doc corresponding to that username
-                // let posts = await ScrapeManager.getPosts(driver, student.username);
-                // console.log(posts);
-                // await db.asyncUpdate({type: 'A', username: student.username}, {$set: {posts: posts}}, {upsert: true});
-                // console.log("top");
-            // });
+
+            console.log("checking posts for: " + student.username);
+            //get most recent thumbnail links
+            let newestPosts = await ScrapeManager.getPosts(driver, student.username); 
+            //get existing links in the db
+            let studentDB = await db.asyncFind({type: 'A', username: student.username});
+            // console.log(JSON.stringify(studentDB));
+            let fullPosts = [];
+            if (studentDB.length == 0) { //new student
+                fullPosts = newestPosts;
+                console.log('new db entry for: ' + student.username);
+            } else {
+                // let existingPosts = studentDB[0].posts; //doesn't really matter...
+                fullPosts = studentDB[0].posts;
+                let newCount = 0;
+                for (let newPost of newestPosts) {
+                    //if not already in posts array, add it
+                    // if(!fullPosts.includes(newPost)){  //includes doesn't work async? needs to be for/of or use promise.all
+                    let isNew = true;
+                    for (let oldPost of fullPosts){
+                        if (newPost == oldPost) {
+                            isNew = false;
+                        }
+                     }   
+                    if (isNew) {
+                        fullPosts.push(newPost); //problem pushing to array thats currently iterating?
+                        // console.log('ex: ' + existingPosts.length + " , full: " + fullPosts.length);
+                        newCount++;
+                    }
+                }
+                console.log(student.username + " had " + newCount + " new posts");
+            }
+            //update
+            await db.asyncUpdate({type: 'A', username: student.username}, {$set: {posts: fullPosts}}, {upsert: true});
         }
         
         return await db.asyncFind({type: 'A'});
-        //grab all adocs and return -- prob redundant but w/e
-        // await db.asyncFind({type: 'A'}, function (err, docs) {
-        //     if (err) {
-        //         console.log(err);
-        //     }
-        //     console.log(docs);
-        //     return docs;
-        // });
     } catch (err) {
         console.log(err);
     }
@@ -100,31 +101,21 @@ async function update() {
 
 async function login(){
     try {
+        console.log("logging in");
         // await driver.get('https://www.instagram.com/accounts/login/?hl=en')
-        await driver.get('https://www.instagram.com/accounts/login/?force_classic_login')
-
+        await driver.get('https://www.instagram.com/accounts/login/?force_classic_login') //can only find elements in classic for some reason
         console.log("opened insta");
-        // await driver.sleep(1000000);
-        // let body = await driver.findElement(By.css('body'));
-        //_2hvTZ.pexuQ.zyHYP
-        // console.log(await body.getAttribute('outerHTML'));
-        // await driver.sleep(100000);
-        // console.log("source" + (await driver.getPageSource()));
         // let inputs = await body.findElements(By.className('_2hvTZ pexuQ zyHYP'));
-        // console.log(inputs);
-        let usernameBox = await driver.findElement(By.name('username'));
-        // console.log(usernameBox);
-        // let usernameBox = inputs[0];
-        // let passwordBox = inputs[1];
-        // await driver.sleep(100000);
 
+        //find the username and password inputs and insert -- then click log in
+        let usernameBox = await driver.findElement(By.name('username'));
         let passwordBox = await driver.findElement(By.name('enc_password'));
-        await usernameBox.sendKeys('100daysof_unmaking');
-        await passwordBox.sendKeys('Inst333842?');
+        await usernameBox.sendKeys(username);
+        await passwordBox.sendKeys(password);
         console.log("account entered");
         let loginButton = await driver.findElement(By.className('button-green'));
         await loginButton.click();
-        // await driver.sleep(100000);
+        console.log("logged in");
         await driver.sleep(100);
     } catch (err) {
         console.log(err);
