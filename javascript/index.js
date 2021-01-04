@@ -36,10 +36,8 @@ const ScrapeManager = require('./scrapeManager');
 // const Students = require('./students'); // list of usernames -- TODO: better way + privacy?
 const Students = require('./hidden/students_hidden'); // list of usernames -- TODO: better way + privacy?
 
-
 //main function
 run();
-
 
 async function run(){
     try {
@@ -47,6 +45,29 @@ async function run(){
         let aDocs = await update(); //updates all the A docs from db
         let changes = await scrape(aDocs); //goes through each username for new posts and updates the db
         console.log("FINISHED -- changes: " + changes); //logs how many new posts were added, just for checking
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+async function login(){
+    try {
+        console.log("logging in");
+        // await driver.get('https://www.instagram.com/accounts/login/?hl=en')
+        await driver.get('https://www.instagram.com/accounts/login/?force_classic_login') //can only find elements in classic for some reason
+        console.log("opened insta");
+        // let inputs = await body.findElements(By.className('_2hvTZ pexuQ zyHYP'));
+
+        //find the username and password inputs and insert -- then click log in
+        let usernameBox = await driver.findElement(By.name('username'));
+        let passwordBox = await driver.findElement(By.name('enc_password'));
+        await usernameBox.sendKeys(username);
+        await passwordBox.sendKeys(password);
+        console.log("account entered");
+        let loginButton = await driver.findElement(By.className('button-green'));
+        await loginButton.click();
+        console.log("logged in");
+        await driver.sleep(100);
     } catch (err) {
         console.log(err);
     }
@@ -90,7 +111,7 @@ async function update() {
                 console.log(student.username + " had " + newCount + " new posts");
             }
             //update
-            await db.asyncUpdate({type: 'A', username: student.username}, {$set: {posts: fullPosts}}, {upsert: true});
+            await db.asyncUpdate({type: 'A', username: student.username, class: student.class}, {$set: {posts: fullPosts}}, {upsert: true});
         }
         
         return await db.asyncFind({type: 'A'});
@@ -99,30 +120,22 @@ async function update() {
     }
 }
 
-async function login(){
-    try {
-        console.log("logging in");
-        // await driver.get('https://www.instagram.com/accounts/login/?hl=en')
-        await driver.get('https://www.instagram.com/accounts/login/?force_classic_login') //can only find elements in classic for some reason
-        console.log("opened insta");
-        // let inputs = await body.findElements(By.className('_2hvTZ pexuQ zyHYP'));
-
-        //find the username and password inputs and insert -- then click log in
-        let usernameBox = await driver.findElement(By.name('username'));
-        let passwordBox = await driver.findElement(By.name('enc_password'));
-        await usernameBox.sendKeys(username);
-        await passwordBox.sendKeys(password);
-        console.log("account entered");
-        let loginButton = await driver.findElement(By.className('button-green'));
-        await loginButton.click();
-        console.log("logged in");
-        await driver.sleep(100);
-    } catch (err) {
-        console.log(err);
-    }
-}
-
 async function scrape(aDocs) {
-    console.log(aDocs);
-    return 'hi';
+    //aDocs has an array of objects, each with a username and all post links
+    // console.log(aDocs);
+    let changeCount = 0;
+    for (let docs of aDocs) {
+        //go to each new post and get links
+        for (let post of docs.posts) {
+            let bDoc = await db.asyncFind({type: 'B', username: docs.username, postURL: post})
+            if (bDoc.length == 0) { //new post
+                changeCount++;
+                let [links, date] = await ScrapeManager.getLinks(driver, post); //destructured return
+                //what happens if error above? logged as undefined and then won't rewrite later? TODO 
+                await db.asyncUpdate({type: 'B', username: docs.username, class: docs.class, postURL: post, date: date}, {$set: {links: links}}, {upsert: true});
+            }
+        }
+    }
+    
+    return changeCount;
 }
