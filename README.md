@@ -28,7 +28,7 @@ B) One doc per post, with the following fields:
 - Date (millis format for sorting?)
 - Username
 - Student Name
-- url
+- postURL
 - Links obj
     - imgs array
     - vids array
@@ -39,6 +39,8 @@ B) One doc per post, with the following fields:
 - [ ] find out if that device disconnect error matters
 - [ ] find out about (headless?) running -- do i need chromium to open and if so, how to run daily?
 - [ ] ip proxy or other ip protection?
-- [ ] add try/catch to all async functions
+- [X] add try/catch to all async functions
+- [ ] caption text?
+- [ ] get rid of blob from vid src
 
 12/5 -- issue with run awaits not waiting and findElements not finding the thumbnail class -- need to investigate
