@@ -81,7 +81,8 @@ async function update() {
 
             console.log("checking posts for: " + student.username);
             //get most recent thumbnail links
-            let newestPosts = await ScrapeManager.getPosts(driver, student.username); 
+            let newestPosts = await ScrapeManager.getPosts(driver, student.username);
+             
             //get existing links in the db
             let studentDB = await db.asyncFind({type: 'A', username: student.username});
             // console.log(JSON.stringify(studentDB));

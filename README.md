@@ -6,6 +6,14 @@ testing playground for Matt Ross' scraping stuff
 - Store urls in database
 - Pull from database to generate textures in YORB
 
+### For new repos, need to add following
+- databases/test.db
+- hidden/students_hidden.js
+- .env
+    - ACCOUNT
+    - PASSWORD
+- might need to update chromedriver in package-lock to match your chrome version
+
 ### OoO for daily check
 1. Open Instagram in Chromium
 2. For Each User
@@ -42,5 +50,6 @@ B) One doc per post, with the following fields:
 - [X] add try/catch to all async functions
 - [ ] caption text?
 - [ ] get rid of blob from vid src
+- [ ] figure out how to get all posts after a certain date
 
 12/5 -- issue with run awaits not waiting and findElements not finding the thumbnail class -- need to investigate
